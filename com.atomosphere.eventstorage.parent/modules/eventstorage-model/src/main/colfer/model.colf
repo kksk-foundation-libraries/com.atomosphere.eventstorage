@@ -1,0 +1,13 @@
+package colfer
+
+type Event struct {
+	key						binary
+	value					binary
+	timestamp				uint64
+	version					uint32
+}
+
+type EventVersion struct {
+	key						binary
+	version					uint32
+}
