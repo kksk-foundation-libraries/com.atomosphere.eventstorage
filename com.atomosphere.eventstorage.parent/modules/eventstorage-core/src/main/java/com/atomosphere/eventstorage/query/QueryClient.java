@@ -1,16 +1,14 @@
 package com.atomosphere.eventstorage.query;
 
 import java.lang.reflect.Constructor;
+import java.util.concurrent.locks.Lock;
 import java.util.function.Function;
 
 import org.apache.ignite.IgniteCache;
 
-import com.atomosphere.eventstorage.EventStorageHelper;
 import com.atomosphere.eventstorage.aggregation.EventAggregationStrategy;
 import com.atomosphere.eventstorage.model.Binary;
 import com.atomosphere.eventstorage.model.ColferObject;
-import com.atomosphere.eventstorage.query.QueryProcessor;
-import com.atomosphere.eventstorage.query.SimpleQueryProcessor;
 
 public class QueryClient<ValueType extends ColferObject> implements Function<QueryCondition, ValueType> {
 	private static final QueryProcessor DEFAULT_QUERY_PROCESSOR = new SimpleQueryProcessor();
@@ -43,8 +41,31 @@ public class QueryClient<ValueType extends ColferObject> implements Function<Que
 
 	@Override
 	public ValueType apply(QueryCondition condition) {
-		byte[] data = EventStorageHelper.query(eventCache, registeredVersion, snapshotCache, aggregatedVersion, aggregationStrategy, queryProcessor, condition.getKey().marshal(), condition.getCondition().marshal());
+		byte[] data = query(condition.getKey().marshal(), condition.getCondition().marshal());
 		return newValue().unmarshal(data);
+	}
+
+	private byte[] query(byte[] key, byte[] condition) {
+		Binary binKey = Binary.of(key);
+		Lock lock = aggregatedVersion.lock(binKey);
+		lock.lock();
+		try {
+			Integer registered = registeredVersion.get(binKey);
+			if (registered == null) {
+				registered = 0;
+			}
+			Integer aggregated = aggregatedVersion.get(binKey);
+			if (aggregated == null) {
+				aggregated = 0;
+			}
+			if (aggregated.intValue() < registered.intValue()) {
+				aggregationStrategy.aggregate(eventCache, snapshotCache, key, registered, aggregated);
+				aggregatedVersion.put(binKey, registered);
+			}
+			return queryProcessor.execute(snapshotCache, key, condition);
+		} finally {
+			lock.unlock();
+		}
 	}
 
 	private ValueType newValue() {
