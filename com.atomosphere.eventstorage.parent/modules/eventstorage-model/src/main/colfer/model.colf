@@ -7,14 +7,6 @@ type Event struct {
 	version					uint32
 }
 
-type UpdateEvent struct {
-	key						binary
-	oldValue				binary
-	newValue				binary
-	timestamp				uint64
-	version					uint32
-}
-
 type EventVersion struct {
 	key						binary
 	version					uint32
