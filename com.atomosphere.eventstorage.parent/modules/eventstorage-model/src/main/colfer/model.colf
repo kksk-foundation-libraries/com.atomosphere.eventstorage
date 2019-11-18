@@ -3,6 +3,7 @@ package colfer
 type Event struct {
 	key						binary
 	value					binary
+	lastValue				binary
 	timestamp				uint64
 	version					uint32
 }

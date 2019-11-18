@@ -36,6 +36,8 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 
 	public byte[] value;
 
+	public byte[] lastValue;
+
 	public long timestamp;
 
 	public int version;
@@ -52,6 +54,7 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 	private void init() {
 		key = _zeroBytes;
 		value = _zeroBytes;
+		lastValue = _zeroBytes;
 	}
 
 	/**
@@ -222,10 +225,29 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 				System.arraycopy(this.value, 0, buf, start, size);
 			}
 
+			if (this.lastValue.length != 0) {
+				buf[i++] = (byte) 2;
+
+				int size = this.lastValue.length;
+				if (size > Event.colferSizeMax)
+					throw new IllegalStateException(format("colfer: com/atomosphere/eventstorage/model/colfer.Event.lastValue size %d exceeds %d bytes", size, Event.colferSizeMax));
+
+				int x = size;
+				while (x > 0x7f) {
+					buf[i++] = (byte) (x | 0x80);
+					x >>>= 7;
+				}
+				buf[i++] = (byte) x;
+
+				int start = i;
+				i += size;
+				System.arraycopy(this.lastValue, 0, buf, start, size);
+			}
+
 			if (this.timestamp != 0) {
 				long x = this.timestamp;
 				if ((x & ~((1L << 49) - 1)) != 0) {
-					buf[i++] = (byte) (2 | 0x80);
+					buf[i++] = (byte) (3 | 0x80);
 					buf[i++] = (byte) (x >>> 56);
 					buf[i++] = (byte) (x >>> 48);
 					buf[i++] = (byte) (x >>> 40);
@@ -235,7 +257,7 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 					buf[i++] = (byte) (x >>> 8);
 					buf[i++] = (byte) (x);
 				} else {
-					buf[i++] = (byte) 2;
+					buf[i++] = (byte) 3;
 					while (x > 0x7fL) {
 						buf[i++] = (byte) (x | 0x80);
 						x >>>= 7;
@@ -247,12 +269,12 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 			if (this.version != 0) {
 				int x = this.version;
 				if ((x & ~((1 << 21) - 1)) != 0) {
-					buf[i++] = (byte) (3 | 0x80);
+					buf[i++] = (byte) (4 | 0x80);
 					buf[i++] = (byte) (x >>> 24);
 					buf[i++] = (byte) (x >>> 16);
 					buf[i++] = (byte) (x >>> 8);
 				} else {
-					buf[i++] = (byte) 3;
+					buf[i++] = (byte) 4;
 					while (x > 0x7f) {
 						buf[i++] = (byte) (x | 0x80);
 						x >>>= 7;
@@ -338,6 +360,24 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 			}
 
 			if (header == (byte) 2) {
+				int size = 0;
+				for (int shift = 0; true; shift += 7) {
+					byte b = buf[i++];
+					size |= (b & 0x7f) << shift;
+					if (shift == 28 || b >= 0) break;
+				}
+				if (size < 0 || size > Event.colferSizeMax)
+					throw new SecurityException(format("colfer: com/atomosphere/eventstorage/model/colfer.Event.lastValue size %d exceeds %d bytes", size, Event.colferSizeMax));
+
+				this.lastValue = new byte[size];
+				int start = i;
+				i += size;
+				System.arraycopy(buf, start, this.lastValue, 0, size);
+
+				header = buf[i++];
+			}
+
+			if (header == (byte) 3) {
 				long x = 0;
 				for (int shift = 0; true; shift += 7) {
 					byte b = buf[i++];
@@ -349,13 +389,13 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 				}
 				this.timestamp = x;
 				header = buf[i++];
-			} else if (header == (byte) (2 | 0x80)) {
+			} else if (header == (byte) (3 | 0x80)) {
 				this.timestamp = (buf[i++] & 0xffL) << 56 | (buf[i++] & 0xffL) << 48 | (buf[i++] & 0xffL) << 40 | (buf[i++] & 0xffL) << 32
 					| (buf[i++] & 0xffL) << 24 | (buf[i++] & 0xffL) << 16 | (buf[i++] & 0xffL) << 8 | (buf[i++] & 0xffL);
 				header = buf[i++];
 			}
 
-			if (header == (byte) 3) {
+			if (header == (byte) 4) {
 				int x = 0;
 				for (int shift = 0; true; shift += 7) {
 					byte b = buf[i++];
@@ -364,7 +404,7 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 				}
 				this.version = x;
 				header = buf[i++];
-			} else if (header == (byte) (3 | 0x80)) {
+			} else if (header == (byte) (4 | 0x80)) {
 				this.version = (buf[i++] & 0xff) << 24 | (buf[i++] & 0xff) << 16 | (buf[i++] & 0xff) << 8 | (buf[i++] & 0xff);
 				header = buf[i++];
 			}
@@ -382,7 +422,7 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 	}
 
 	// {@link Serializable} version number.
-	private static final long serialVersionUID = 4L;
+	private static final long serialVersionUID = 5L;
 
 	// {@link Serializable} Colfer extension.
 	private void writeObject(ObjectOutputStream out) throws IOException {
@@ -468,6 +508,32 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 	}
 
 	/**
+	 * Gets com/atomosphere/eventstorage/model/colfer.Event.lastValue.
+	 * @return the value.
+	 */
+	public byte[] getLastValue() {
+		return this.lastValue;
+	}
+
+	/**
+	 * Sets com/atomosphere/eventstorage/model/colfer.Event.lastValue.
+	 * @param value the replacement.
+	 */
+	public void setLastValue(byte[] value) {
+		this.lastValue = value;
+	}
+
+	/**
+	 * Sets com/atomosphere/eventstorage/model/colfer.Event.lastValue.
+	 * @param value the replacement.
+	 * @return {link this}.
+	 */
+	public Event withLastValue(byte[] value) {
+		this.lastValue = value;
+		return this;
+	}
+
+	/**
 	 * Gets com/atomosphere/eventstorage/model/colfer.Event.timestamp.
 	 * @return the value.
 	 */
@@ -524,6 +590,7 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 		int h = 1;
 		for (byte b : this.key) h = 31 * h + b;
 		for (byte b : this.value) h = 31 * h + b;
+		for (byte b : this.lastValue) h = 31 * h + b;
 		h = 31 * h + (int)(this.timestamp ^ this.timestamp >>> 32);
 		h = 31 * h + this.version;
 		return h;
@@ -540,6 +607,7 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 		return o.getClass() == Event.class
 			&& java.util.Arrays.equals(this.key, o.key)
 			&& java.util.Arrays.equals(this.value, o.value)
+			&& java.util.Arrays.equals(this.lastValue, o.lastValue)
 			&& this.timestamp == o.timestamp
 			&& this.version == o.version;
 	}

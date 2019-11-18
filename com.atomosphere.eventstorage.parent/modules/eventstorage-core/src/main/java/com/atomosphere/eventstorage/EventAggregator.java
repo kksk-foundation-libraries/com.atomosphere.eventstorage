@@ -1,12 +1,17 @@
-package com.atomosphere.eventstorage.aggregation;
+package com.atomosphere.eventstorage;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.locks.Lock;
+import java.util.function.Function;
 
 import org.apache.ignite.IgniteCache;
 
+import com.atomosphere.eventstorage.aggregation.EventAggregationStrategy;
 import com.atomosphere.eventstorage.model.Binary;
+import com.atomosphere.eventstorage.model.colfer.Event;
 
-public class EventAggregator {
+public class EventAggregator implements Function<Event, List<Event>> {
 	private final IgniteCache<Binary, byte[]> eventCache;
 	private final IgniteCache<Binary, Integer> registeredVersion;
 	private final IgniteCache<Binary, byte[]> snapshotCache;
@@ -27,7 +32,10 @@ public class EventAggregator {
 		this.aggregationStrategy = aggregationStrategy;
 	}
 
-	public void aggregate(byte[] key) {
+	@Override
+	public List<Event> apply(Event event) {
+		byte[] key = event.getKey();
+		List<Event> result = new ArrayList<>();
 		Binary binKey = Binary.of(key);
 		Lock lock = aggregatedVersion.lock(binKey);
 		lock.lock();
@@ -41,11 +49,12 @@ public class EventAggregator {
 				aggregated = 0;
 			}
 			if (aggregated.intValue() < registered.intValue()) {
-				aggregationStrategy.aggregate(eventCache, snapshotCache, key, registered, aggregated);
+				result.addAll(aggregationStrategy.aggregate(eventCache, snapshotCache, key, registered, aggregated));
 				aggregatedVersion.put(binKey, registered);
 			}
 		} finally {
 			lock.unlock();
 		}
+		return result;
 	}
 }

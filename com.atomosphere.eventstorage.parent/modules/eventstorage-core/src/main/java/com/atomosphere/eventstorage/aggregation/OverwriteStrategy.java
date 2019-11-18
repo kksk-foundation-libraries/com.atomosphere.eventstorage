@@ -1,5 +1,9 @@
 package com.atomosphere.eventstorage.aggregation;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.ignite.IgniteCache;
 
 import com.atomosphere.eventstorage.model.Binary;
@@ -9,7 +13,7 @@ import com.atomosphere.eventstorage.model.colfer.EventVersion;
 public class OverwriteStrategy implements EventAggregationStrategy {
 
 	@Override
-	public void aggregate( //
+	public List<Event> aggregate( //
 			IgniteCache<Binary, byte[]> eventCache, //
 			IgniteCache<Binary, byte[]> snapshotCache, //
 			byte[] key, //
@@ -18,10 +22,11 @@ public class OverwriteStrategy implements EventAggregationStrategy {
 	) {
 		Event event = new Event().unmarshal(eventCache.get(Binary.of(new EventVersion().withKey(key).withVersion(registered))));
 		if (event.getValue() == null) {
-			snapshotCache.remove(Binary.of(key));
+			event.setLastValue(snapshotCache.getAndRemove(Binary.of(key)));
 		} else {
-			snapshotCache.put(Binary.of(key), event.getValue());
+			event.setLastValue(snapshotCache.getAndPut(Binary.of(key), event.getValue()));
 		}
+		return new ArrayList<>(Arrays.asList(event));
 	}
 
 }
