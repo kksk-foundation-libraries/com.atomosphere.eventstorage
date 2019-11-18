@@ -20,7 +20,39 @@ public class QueryClient<ValueType extends ColferObject> implements Function<Que
 	private final Consumer<List<Event>> aggregatedEventListener;
 	private final Function<QueryCondition, ValueType> getFunction;
 
-	public QueryClient(Class<ValueType> valueClass, EventAggregator eventAggregator, Consumer<List<Event>> aggregatedEventListener, IgniteCache<Binary, byte[]> snapshotCache, EntryProcessor<Binary, byte[], byte[]> getEntryProcessor) {
+	public QueryClient( //
+			Class<ValueType> valueClass, //
+			EventAggregator eventAggregator, //
+			IgniteCache<Binary, byte[]> snapshotCache //
+	) {
+		this(valueClass, eventAggregator, snapshotCache, null, null);
+	}
+
+	public QueryClient( //
+			Class<ValueType> valueClass, //
+			EventAggregator eventAggregator, //
+			IgniteCache<Binary, byte[]> snapshotCache, //
+			EntryProcessor<Binary, byte[], byte[]> getEntryProcessor //
+	) {
+		this(valueClass, eventAggregator, snapshotCache, getEntryProcessor, null);
+	}
+
+	public QueryClient( //
+			Class<ValueType> valueClass, //
+			EventAggregator eventAggregator, //
+			IgniteCache<Binary, byte[]> snapshotCache, //
+			Consumer<List<Event>> aggregatedEventListener //
+	) {
+		this(valueClass, eventAggregator, snapshotCache, null, aggregatedEventListener);
+	}
+
+	public QueryClient( //
+			Class<ValueType> valueClass, //
+			EventAggregator eventAggregator, //
+			IgniteCache<Binary, byte[]> snapshotCache, //
+			EntryProcessor<Binary, byte[], byte[]> getEntryProcessor, //
+			Consumer<List<Event>> aggregatedEventListener //
+	) {
 		Constructor<ValueType> _constructor = null;
 		try {
 			_constructor = valueClass.getConstructor();
@@ -54,7 +86,10 @@ public class QueryClient<ValueType extends ColferObject> implements Function<Que
 
 	@Override
 	public ValueType apply(QueryCondition queryCondition) {
-		aggregatedEventListener.accept(eventAggregator.apply(new Event().withKey(queryCondition.getKey().marshal())));
+		List<Event> aggregatedEvents = eventAggregator.apply(new Event().withKey(queryCondition.getKey().marshal()));
+		if (aggregatedEventListener != null) {
+			aggregatedEventListener.accept(aggregatedEvents);
+		}
 		return getFunction.apply(queryCondition);
 	}
 }
