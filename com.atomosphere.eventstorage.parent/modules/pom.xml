@@ -44,7 +44,5 @@
 	</dependencies>
 	<modules>
 		<module>eventstorage-model</module>
-		<module>eventstorage-entry-processor</module>
-		<module>eventstorage-core</module>
 	</modules>
 </project>
