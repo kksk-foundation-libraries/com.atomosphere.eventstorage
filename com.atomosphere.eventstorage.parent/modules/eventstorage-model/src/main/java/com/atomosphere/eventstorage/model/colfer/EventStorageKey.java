@@ -24,7 +24,7 @@ import java.nio.BufferUnderflowException;
  * @see <a href="https://github.com/pascaldekloe/colfer">Colfer's home</a>
  */
 @javax.annotation.Generated(value="colf(1)", comments="Colfer from schema file model.colf")
-public class Event extends com.atomosphere.eventstorage.model.ColferObject implements Serializable {
+public class EventStorageKey extends com.atomosphere.eventstorage.model.ColferObject implements Serializable {
 
 	/** The upper limit for serial byte sizes. */
 	public static int colferSizeMax = 16 * 1024 * 1024;
@@ -36,11 +36,11 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 
 	public byte[] key;
 
-	public byte[] value;
+	public int version;
 
 
 	/** Default constructor */
-	public Event() {
+	public EventStorageKey() {
 		init();
 	}
 
@@ -49,7 +49,6 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 	/** Colfer zero values. */
 	private void init() {
 		key = _zeroBytes;
-		value = _zeroBytes;
 	}
 
 	/**
@@ -77,7 +76,7 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 		public Unmarshaller(InputStream in, byte[] buf) {
 			// TODO: better size estimation
 			if (buf == null || buf.length == 0)
-				buf = new byte[Math.min(Event.colferSizeMax, 2048)];
+				buf = new byte[Math.min(EventStorageKey.colferSizeMax, 2048)];
 			this.buf = buf;
 			reset(in);
 		}
@@ -101,13 +100,13 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 		 * @throws SecurityException on an upper limit breach defined by {@link #colferSizeMax}.
 		 * @throws InputMismatchException when the data does not match this object's schema.
 		 */
-		public Event next() throws IOException {
+		public EventStorageKey next() throws IOException {
 			if (in == null) return null;
 
 			while (true) {
 				if (this.i > this.offset) {
 					try {
-						Event o = new Event();
+						EventStorageKey o = new EventStorageKey();
 						this.offset = o.unmarshal(this.buf, this.offset, this.i);
 						return o;
 					} catch (BufferUnderflowException e) {
@@ -121,7 +120,7 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 				} else if (i == buf.length) {
 					byte[] src = this.buf;
 					// TODO: better size estimation
-					if (offset == 0) this.buf = new byte[Math.min(Event.colferSizeMax, this.buf.length * 4)];
+					if (offset == 0) this.buf = new byte[Math.min(EventStorageKey.colferSizeMax, this.buf.length * 4)];
 					System.arraycopy(src, this.offset, this.buf, 0, this.i - this.offset);
 					this.i -= this.offset;
 					this.offset = 0;
@@ -154,14 +153,14 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 	public byte[] marshal(OutputStream out, byte[] buf) throws IOException {
 		// TODO: better size estimation
 		if (buf == null || buf.length == 0)
-			buf = new byte[Math.min(Event.colferSizeMax, 2048)];
+			buf = new byte[Math.min(EventStorageKey.colferSizeMax, 2048)];
 
 		while (true) {
 			int i;
 			try {
 				i = marshal(buf, 0);
 			} catch (BufferOverflowException e) {
-				buf = new byte[Math.min(Event.colferSizeMax, buf.length * 4)];
+				buf = new byte[Math.min(EventStorageKey.colferSizeMax, buf.length * 4)];
 				continue;
 			}
 
@@ -203,8 +202,8 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 				buf[i++] = (byte) 1;
 
 				int size = this.key.length;
-				if (size > Event.colferSizeMax)
-					throw new IllegalStateException(format("colfer: com/atomosphere/eventstorage/model/colfer.Event.key size %d exceeds %d bytes", size, Event.colferSizeMax));
+				if (size > EventStorageKey.colferSizeMax)
+					throw new IllegalStateException(format("colfer: com/atomosphere/eventstorage/model/colfer.EventStorageKey.key size %d exceeds %d bytes", size, EventStorageKey.colferSizeMax));
 
 				int x = size;
 				while (x > 0x7f) {
@@ -218,30 +217,28 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 				System.arraycopy(this.key, 0, buf, start, size);
 			}
 
-			if (this.value.length != 0) {
-				buf[i++] = (byte) 2;
-
-				int size = this.value.length;
-				if (size > Event.colferSizeMax)
-					throw new IllegalStateException(format("colfer: com/atomosphere/eventstorage/model/colfer.Event.value size %d exceeds %d bytes", size, Event.colferSizeMax));
-
-				int x = size;
-				while (x > 0x7f) {
-					buf[i++] = (byte) (x | 0x80);
-					x >>>= 7;
+			if (this.version != 0) {
+				int x = this.version;
+				if ((x & ~((1 << 21) - 1)) != 0) {
+					buf[i++] = (byte) (2 | 0x80);
+					buf[i++] = (byte) (x >>> 24);
+					buf[i++] = (byte) (x >>> 16);
+					buf[i++] = (byte) (x >>> 8);
+				} else {
+					buf[i++] = (byte) 2;
+					while (x > 0x7f) {
+						buf[i++] = (byte) (x | 0x80);
+						x >>>= 7;
+					}
 				}
 				buf[i++] = (byte) x;
-
-				int start = i;
-				i += size;
-				System.arraycopy(this.value, 0, buf, start, size);
 			}
 
 			buf[i++] = (byte) 0x7f;
 			return i;
 		} catch (ArrayIndexOutOfBoundsException e) {
-			if (i - offset > Event.colferSizeMax)
-				throw new IllegalStateException(format("colfer: com/atomosphere/eventstorage/model/colfer.Event exceeds %d bytes", Event.colferSizeMax));
+			if (i - offset > EventStorageKey.colferSizeMax)
+				throw new IllegalStateException(format("colfer: com/atomosphere/eventstorage/model/colfer.EventStorageKey exceeds %d bytes", EventStorageKey.colferSizeMax));
 			if (i > buf.length) throw new BufferOverflowException();
 			throw e;
 		}
@@ -298,8 +295,8 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 					size |= (b & 0x7f) << shift;
 					if (shift == 28 || b >= 0) break;
 				}
-				if (size < 0 || size > Event.colferSizeMax)
-					throw new SecurityException(format("colfer: com/atomosphere/eventstorage/model/colfer.Event.key size %d exceeds %d bytes", size, Event.colferSizeMax));
+				if (size < 0 || size > EventStorageKey.colferSizeMax)
+					throw new SecurityException(format("colfer: com/atomosphere/eventstorage/model/colfer.EventStorageKey.key size %d exceeds %d bytes", size, EventStorageKey.colferSizeMax));
 
 				this.key = new byte[size];
 				int start = i;
@@ -310,29 +307,25 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 			}
 
 			if (header == (byte) 2) {
-				int size = 0;
+				int x = 0;
 				for (int shift = 0; true; shift += 7) {
 					byte b = buf[i++];
-					size |= (b & 0x7f) << shift;
+					x |= (b & 0x7f) << shift;
 					if (shift == 28 || b >= 0) break;
 				}
-				if (size < 0 || size > Event.colferSizeMax)
-					throw new SecurityException(format("colfer: com/atomosphere/eventstorage/model/colfer.Event.value size %d exceeds %d bytes", size, Event.colferSizeMax));
-
-				this.value = new byte[size];
-				int start = i;
-				i += size;
-				System.arraycopy(buf, start, this.value, 0, size);
-
+				this.version = x;
+				header = buf[i++];
+			} else if (header == (byte) (2 | 0x80)) {
+				this.version = (buf[i++] & 0xff) << 24 | (buf[i++] & 0xff) << 16 | (buf[i++] & 0xff) << 8 | (buf[i++] & 0xff);
 				header = buf[i++];
 			}
 
 			if (header != (byte) 0x7f)
 				throw new InputMismatchException(format("colfer: unknown header at byte %d", i - 1));
 		} finally {
-			if (i > end && end - offset < Event.colferSizeMax) throw new BufferUnderflowException();
-			if (i < 0 || i - offset > Event.colferSizeMax)
-				throw new SecurityException(format("colfer: com/atomosphere/eventstorage/model/colfer.Event exceeds %d bytes", Event.colferSizeMax));
+			if (i > end && end - offset < EventStorageKey.colferSizeMax) throw new BufferUnderflowException();
+			if (i < 0 || i - offset > EventStorageKey.colferSizeMax)
+				throw new SecurityException(format("colfer: com/atomosphere/eventstorage/model/colfer.EventStorageKey exceeds %d bytes", EventStorageKey.colferSizeMax));
 			if (i > end) throw new BufferUnderflowException();
 		}
 
@@ -374,7 +367,7 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 	}
 
 	/**
-	 * Gets com/atomosphere/eventstorage/model/colfer.Event.eventType.
+	 * Gets com/atomosphere/eventstorage/model/colfer.EventStorageKey.eventType.
 	 * @return the value.
 	 */
 	public int getEventType() {
@@ -382,7 +375,7 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 	}
 
 	/**
-	 * Sets com/atomosphere/eventstorage/model/colfer.Event.eventType.
+	 * Sets com/atomosphere/eventstorage/model/colfer.EventStorageKey.eventType.
 	 * @param value the replacement.
 	 */
 	public void setEventType(int value) {
@@ -390,17 +383,17 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 	}
 
 	/**
-	 * Sets com/atomosphere/eventstorage/model/colfer.Event.eventType.
+	 * Sets com/atomosphere/eventstorage/model/colfer.EventStorageKey.eventType.
 	 * @param value the replacement.
 	 * @return {link this}.
 	 */
-	public Event withEventType(int value) {
+	public EventStorageKey withEventType(int value) {
 		this.eventType = value;
 		return this;
 	}
 
 	/**
-	 * Gets com/atomosphere/eventstorage/model/colfer.Event.key.
+	 * Gets com/atomosphere/eventstorage/model/colfer.EventStorageKey.key.
 	 * @return the value.
 	 */
 	public byte[] getKey() {
@@ -408,7 +401,7 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 	}
 
 	/**
-	 * Sets com/atomosphere/eventstorage/model/colfer.Event.key.
+	 * Sets com/atomosphere/eventstorage/model/colfer.EventStorageKey.key.
 	 * @param value the replacement.
 	 */
 	public void setKey(byte[] value) {
@@ -416,38 +409,38 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 	}
 
 	/**
-	 * Sets com/atomosphere/eventstorage/model/colfer.Event.key.
+	 * Sets com/atomosphere/eventstorage/model/colfer.EventStorageKey.key.
 	 * @param value the replacement.
 	 * @return {link this}.
 	 */
-	public Event withKey(byte[] value) {
+	public EventStorageKey withKey(byte[] value) {
 		this.key = value;
 		return this;
 	}
 
 	/**
-	 * Gets com/atomosphere/eventstorage/model/colfer.Event.value.
+	 * Gets com/atomosphere/eventstorage/model/colfer.EventStorageKey.version.
 	 * @return the value.
 	 */
-	public byte[] getValue() {
-		return this.value;
+	public int getVersion() {
+		return this.version;
 	}
 
 	/**
-	 * Sets com/atomosphere/eventstorage/model/colfer.Event.value.
+	 * Sets com/atomosphere/eventstorage/model/colfer.EventStorageKey.version.
 	 * @param value the replacement.
 	 */
-	public void setValue(byte[] value) {
-		this.value = value;
+	public void setVersion(int value) {
+		this.version = value;
 	}
 
 	/**
-	 * Sets com/atomosphere/eventstorage/model/colfer.Event.value.
+	 * Sets com/atomosphere/eventstorage/model/colfer.EventStorageKey.version.
 	 * @param value the replacement.
 	 * @return {link this}.
 	 */
-	public Event withValue(byte[] value) {
-		this.value = value;
+	public EventStorageKey withVersion(int value) {
+		this.version = value;
 		return this;
 	}
 
@@ -456,22 +449,22 @@ public class Event extends com.atomosphere.eventstorage.model.ColferObject imple
 		int h = 1;
 		h = 31 * h + this.eventType;
 		for (byte b : this.key) h = 31 * h + b;
-		for (byte b : this.value) h = 31 * h + b;
+		h = 31 * h + this.version;
 		return h;
 	}
 
 	@Override
 	public final boolean equals(Object o) {
-		return o instanceof Event && equals((Event) o);
+		return o instanceof EventStorageKey && equals((EventStorageKey) o);
 	}
 
-	public final boolean equals(Event o) {
+	public final boolean equals(EventStorageKey o) {
 		if (o == null) return false;
 		if (o == this) return true;
-		return o.getClass() == Event.class
+		return o.getClass() == EventStorageKey.class
 			&& this.eventType == o.eventType
 			&& java.util.Arrays.equals(this.key, o.key)
-			&& java.util.Arrays.equals(this.value, o.value);
+			&& this.version == o.version;
 	}
 
 }

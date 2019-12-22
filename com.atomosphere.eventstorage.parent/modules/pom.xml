@@ -44,5 +44,10 @@
 	</dependencies>
 	<modules>
 		<module>eventstorage-model</module>
+		<module>eventstorage-api</module>
+		<module>eventstorage-client-spi</module>
+		<module>eventstorage-client</module>
+		<module>eventstorage-server-spi</module>
+		<module>eventstorage-server</module>
 	</modules>
 </project>

@@ -24,7 +24,7 @@ import java.nio.BufferUnderflowException;
  * @see <a href="https://github.com/pascaldekloe/colfer">Colfer's home</a>
  */
 @javax.annotation.Generated(value="colf(1)", comments="Colfer from schema file model.colf")
-public class EventVersion extends com.atomosphere.eventstorage.model.ColferObject implements Serializable {
+public class EventVersionKey extends com.atomosphere.eventstorage.model.ColferObject implements Serializable {
 
 	/** The upper limit for serial byte sizes. */
 	public static int colferSizeMax = 16 * 1024 * 1024;
@@ -32,13 +32,15 @@ public class EventVersion extends com.atomosphere.eventstorage.model.ColferObjec
 
 
 
-	public byte[] key;
+	public byte status;
 
-	public int version;
+	public int eventType;
+
+	public byte[] key;
 
 
 	/** Default constructor */
-	public EventVersion() {
+	public EventVersionKey() {
 		init();
 	}
 
@@ -74,7 +76,7 @@ public class EventVersion extends com.atomosphere.eventstorage.model.ColferObjec
 		public Unmarshaller(InputStream in, byte[] buf) {
 			// TODO: better size estimation
 			if (buf == null || buf.length == 0)
-				buf = new byte[Math.min(EventVersion.colferSizeMax, 2048)];
+				buf = new byte[Math.min(EventVersionKey.colferSizeMax, 2048)];
 			this.buf = buf;
 			reset(in);
 		}
@@ -98,13 +100,13 @@ public class EventVersion extends com.atomosphere.eventstorage.model.ColferObjec
 		 * @throws SecurityException on an upper limit breach defined by {@link #colferSizeMax}.
 		 * @throws InputMismatchException when the data does not match this object's schema.
 		 */
-		public EventVersion next() throws IOException {
+		public EventVersionKey next() throws IOException {
 			if (in == null) return null;
 
 			while (true) {
 				if (this.i > this.offset) {
 					try {
-						EventVersion o = new EventVersion();
+						EventVersionKey o = new EventVersionKey();
 						this.offset = o.unmarshal(this.buf, this.offset, this.i);
 						return o;
 					} catch (BufferUnderflowException e) {
@@ -118,7 +120,7 @@ public class EventVersion extends com.atomosphere.eventstorage.model.ColferObjec
 				} else if (i == buf.length) {
 					byte[] src = this.buf;
 					// TODO: better size estimation
-					if (offset == 0) this.buf = new byte[Math.min(EventVersion.colferSizeMax, this.buf.length * 4)];
+					if (offset == 0) this.buf = new byte[Math.min(EventVersionKey.colferSizeMax, this.buf.length * 4)];
 					System.arraycopy(src, this.offset, this.buf, 0, this.i - this.offset);
 					this.i -= this.offset;
 					this.offset = 0;
@@ -151,14 +153,14 @@ public class EventVersion extends com.atomosphere.eventstorage.model.ColferObjec
 	public byte[] marshal(OutputStream out, byte[] buf) throws IOException {
 		// TODO: better size estimation
 		if (buf == null || buf.length == 0)
-			buf = new byte[Math.min(EventVersion.colferSizeMax, 2048)];
+			buf = new byte[Math.min(EventVersionKey.colferSizeMax, 2048)];
 
 		while (true) {
 			int i;
 			try {
 				i = marshal(buf, 0);
 			} catch (BufferOverflowException e) {
-				buf = new byte[Math.min(EventVersion.colferSizeMax, buf.length * 4)];
+				buf = new byte[Math.min(EventVersionKey.colferSizeMax, buf.length * 4)];
 				continue;
 			}
 
@@ -179,27 +181,13 @@ public class EventVersion extends com.atomosphere.eventstorage.model.ColferObjec
 		int i = offset;
 
 		try {
-			if (this.key.length != 0) {
+			if (this.status != 0) {
 				buf[i++] = (byte) 0;
-
-				int size = this.key.length;
-				if (size > EventVersion.colferSizeMax)
-					throw new IllegalStateException(format("colfer: com/atomosphere/eventstorage/model/colfer.EventVersion.key size %d exceeds %d bytes", size, EventVersion.colferSizeMax));
-
-				int x = size;
-				while (x > 0x7f) {
-					buf[i++] = (byte) (x | 0x80);
-					x >>>= 7;
-				}
-				buf[i++] = (byte) x;
-
-				int start = i;
-				i += size;
-				System.arraycopy(this.key, 0, buf, start, size);
+				buf[i++] = this.status;
 			}
 
-			if (this.version != 0) {
-				int x = this.version;
+			if (this.eventType != 0) {
+				int x = this.eventType;
 				if ((x & ~((1 << 21) - 1)) != 0) {
 					buf[i++] = (byte) (1 | 0x80);
 					buf[i++] = (byte) (x >>> 24);
@@ -215,11 +203,30 @@ public class EventVersion extends com.atomosphere.eventstorage.model.ColferObjec
 				buf[i++] = (byte) x;
 			}
 
+			if (this.key.length != 0) {
+				buf[i++] = (byte) 2;
+
+				int size = this.key.length;
+				if (size > EventVersionKey.colferSizeMax)
+					throw new IllegalStateException(format("colfer: com/atomosphere/eventstorage/model/colfer.EventVersionKey.key size %d exceeds %d bytes", size, EventVersionKey.colferSizeMax));
+
+				int x = size;
+				while (x > 0x7f) {
+					buf[i++] = (byte) (x | 0x80);
+					x >>>= 7;
+				}
+				buf[i++] = (byte) x;
+
+				int start = i;
+				i += size;
+				System.arraycopy(this.key, 0, buf, start, size);
+			}
+
 			buf[i++] = (byte) 0x7f;
 			return i;
 		} catch (ArrayIndexOutOfBoundsException e) {
-			if (i - offset > EventVersion.colferSizeMax)
-				throw new IllegalStateException(format("colfer: com/atomosphere/eventstorage/model/colfer.EventVersion exceeds %d bytes", EventVersion.colferSizeMax));
+			if (i - offset > EventVersionKey.colferSizeMax)
+				throw new IllegalStateException(format("colfer: com/atomosphere/eventstorage/model/colfer.EventVersionKey exceeds %d bytes", EventVersionKey.colferSizeMax));
 			if (i > buf.length) throw new BufferOverflowException();
 			throw e;
 		}
@@ -256,20 +263,7 @@ public class EventVersion extends com.atomosphere.eventstorage.model.ColferObjec
 			byte header = buf[i++];
 
 			if (header == (byte) 0) {
-				int size = 0;
-				for (int shift = 0; true; shift += 7) {
-					byte b = buf[i++];
-					size |= (b & 0x7f) << shift;
-					if (shift == 28 || b >= 0) break;
-				}
-				if (size < 0 || size > EventVersion.colferSizeMax)
-					throw new SecurityException(format("colfer: com/atomosphere/eventstorage/model/colfer.EventVersion.key size %d exceeds %d bytes", size, EventVersion.colferSizeMax));
-
-				this.key = new byte[size];
-				int start = i;
-				i += size;
-				System.arraycopy(buf, start, this.key, 0, size);
-
+				this.status = buf[i++];
 				header = buf[i++];
 			}
 
@@ -280,19 +274,37 @@ public class EventVersion extends com.atomosphere.eventstorage.model.ColferObjec
 					x |= (b & 0x7f) << shift;
 					if (shift == 28 || b >= 0) break;
 				}
-				this.version = x;
+				this.eventType = x;
 				header = buf[i++];
 			} else if (header == (byte) (1 | 0x80)) {
-				this.version = (buf[i++] & 0xff) << 24 | (buf[i++] & 0xff) << 16 | (buf[i++] & 0xff) << 8 | (buf[i++] & 0xff);
+				this.eventType = (buf[i++] & 0xff) << 24 | (buf[i++] & 0xff) << 16 | (buf[i++] & 0xff) << 8 | (buf[i++] & 0xff);
+				header = buf[i++];
+			}
+
+			if (header == (byte) 2) {
+				int size = 0;
+				for (int shift = 0; true; shift += 7) {
+					byte b = buf[i++];
+					size |= (b & 0x7f) << shift;
+					if (shift == 28 || b >= 0) break;
+				}
+				if (size < 0 || size > EventVersionKey.colferSizeMax)
+					throw new SecurityException(format("colfer: com/atomosphere/eventstorage/model/colfer.EventVersionKey.key size %d exceeds %d bytes", size, EventVersionKey.colferSizeMax));
+
+				this.key = new byte[size];
+				int start = i;
+				i += size;
+				System.arraycopy(buf, start, this.key, 0, size);
+
 				header = buf[i++];
 			}
 
 			if (header != (byte) 0x7f)
 				throw new InputMismatchException(format("colfer: unknown header at byte %d", i - 1));
 		} finally {
-			if (i > end && end - offset < EventVersion.colferSizeMax) throw new BufferUnderflowException();
-			if (i < 0 || i - offset > EventVersion.colferSizeMax)
-				throw new SecurityException(format("colfer: com/atomosphere/eventstorage/model/colfer.EventVersion exceeds %d bytes", EventVersion.colferSizeMax));
+			if (i > end && end - offset < EventVersionKey.colferSizeMax) throw new BufferUnderflowException();
+			if (i < 0 || i - offset > EventVersionKey.colferSizeMax)
+				throw new SecurityException(format("colfer: com/atomosphere/eventstorage/model/colfer.EventVersionKey exceeds %d bytes", EventVersionKey.colferSizeMax));
 			if (i > end) throw new BufferUnderflowException();
 		}
 
@@ -300,7 +312,7 @@ public class EventVersion extends com.atomosphere.eventstorage.model.ColferObjec
 	}
 
 	// {@link Serializable} version number.
-	private static final long serialVersionUID = 2L;
+	private static final long serialVersionUID = 3L;
 
 	// {@link Serializable} Colfer extension.
 	private void writeObject(ObjectOutputStream out) throws IOException {
@@ -334,7 +346,59 @@ public class EventVersion extends com.atomosphere.eventstorage.model.ColferObjec
 	}
 
 	/**
-	 * Gets com/atomosphere/eventstorage/model/colfer.EventVersion.key.
+	 * Gets com/atomosphere/eventstorage/model/colfer.EventVersionKey.status.
+	 * @return the value.
+	 */
+	public byte getStatus() {
+		return this.status;
+	}
+
+	/**
+	 * Sets com/atomosphere/eventstorage/model/colfer.EventVersionKey.status.
+	 * @param value the replacement.
+	 */
+	public void setStatus(byte value) {
+		this.status = value;
+	}
+
+	/**
+	 * Sets com/atomosphere/eventstorage/model/colfer.EventVersionKey.status.
+	 * @param value the replacement.
+	 * @return {link this}.
+	 */
+	public EventVersionKey withStatus(byte value) {
+		this.status = value;
+		return this;
+	}
+
+	/**
+	 * Gets com/atomosphere/eventstorage/model/colfer.EventVersionKey.eventType.
+	 * @return the value.
+	 */
+	public int getEventType() {
+		return this.eventType;
+	}
+
+	/**
+	 * Sets com/atomosphere/eventstorage/model/colfer.EventVersionKey.eventType.
+	 * @param value the replacement.
+	 */
+	public void setEventType(int value) {
+		this.eventType = value;
+	}
+
+	/**
+	 * Sets com/atomosphere/eventstorage/model/colfer.EventVersionKey.eventType.
+	 * @param value the replacement.
+	 * @return {link this}.
+	 */
+	public EventVersionKey withEventType(int value) {
+		this.eventType = value;
+		return this;
+	}
+
+	/**
+	 * Gets com/atomosphere/eventstorage/model/colfer.EventVersionKey.key.
 	 * @return the value.
 	 */
 	public byte[] getKey() {
@@ -342,7 +406,7 @@ public class EventVersion extends com.atomosphere.eventstorage.model.ColferObjec
 	}
 
 	/**
-	 * Sets com/atomosphere/eventstorage/model/colfer.EventVersion.key.
+	 * Sets com/atomosphere/eventstorage/model/colfer.EventVersionKey.key.
 	 * @param value the replacement.
 	 */
 	public void setKey(byte[] value) {
@@ -350,60 +414,36 @@ public class EventVersion extends com.atomosphere.eventstorage.model.ColferObjec
 	}
 
 	/**
-	 * Sets com/atomosphere/eventstorage/model/colfer.EventVersion.key.
+	 * Sets com/atomosphere/eventstorage/model/colfer.EventVersionKey.key.
 	 * @param value the replacement.
 	 * @return {link this}.
 	 */
-	public EventVersion withKey(byte[] value) {
+	public EventVersionKey withKey(byte[] value) {
 		this.key = value;
-		return this;
-	}
-
-	/**
-	 * Gets com/atomosphere/eventstorage/model/colfer.EventVersion.version.
-	 * @return the value.
-	 */
-	public int getVersion() {
-		return this.version;
-	}
-
-	/**
-	 * Sets com/atomosphere/eventstorage/model/colfer.EventVersion.version.
-	 * @param value the replacement.
-	 */
-	public void setVersion(int value) {
-		this.version = value;
-	}
-
-	/**
-	 * Sets com/atomosphere/eventstorage/model/colfer.EventVersion.version.
-	 * @param value the replacement.
-	 * @return {link this}.
-	 */
-	public EventVersion withVersion(int value) {
-		this.version = value;
 		return this;
 	}
 
 	@Override
 	public final int hashCode() {
 		int h = 1;
+		h = 31 * h + (this.status & 0xff);
+		h = 31 * h + this.eventType;
 		for (byte b : this.key) h = 31 * h + b;
-		h = 31 * h + this.version;
 		return h;
 	}
 
 	@Override
 	public final boolean equals(Object o) {
-		return o instanceof EventVersion && equals((EventVersion) o);
+		return o instanceof EventVersionKey && equals((EventVersionKey) o);
 	}
 
-	public final boolean equals(EventVersion o) {
+	public final boolean equals(EventVersionKey o) {
 		if (o == null) return false;
 		if (o == this) return true;
-		return o.getClass() == EventVersion.class
-			&& java.util.Arrays.equals(this.key, o.key)
-			&& this.version == o.version;
+		return o.getClass() == EventVersionKey.class
+			&& this.status == o.status
+			&& this.eventType == o.eventType
+			&& java.util.Arrays.equals(this.key, o.key);
 	}
 
 }
