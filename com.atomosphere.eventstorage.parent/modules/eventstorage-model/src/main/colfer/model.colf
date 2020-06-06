@@ -1,14 +1,19 @@
 package colfer
 
 type Event struct {
+	eventType				uint32
 	key						binary
 	value					binary
-	lastValue				binary
-	timestamp				uint64
+}
+
+type EventStorageKey struct {
+	eventType				uint32
+	key						binary
 	version					uint32
 }
 
-type EventVersion struct {
+type EventVersionKey struct {
+	status					uint8
+	eventType				uint32
 	key						binary
-	version					uint32
 }
