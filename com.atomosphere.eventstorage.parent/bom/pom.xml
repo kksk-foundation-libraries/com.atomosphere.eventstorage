@@ -13,7 +13,7 @@
 		<org.slf4j.version>1.7.29</org.slf4j.version>
 		<org.projectlombok.version>1.18.8</org.projectlombok.version>
 		<com.google.auto.service.version>1.0-rc6</com.google.auto.service.version>
-		<org.junit.version>4.12</org.junit.version>
+		<org.junit.version>4.13.1</org.junit.version>
 	</properties>
 	<dependencyManagement>
 		<dependencies>
